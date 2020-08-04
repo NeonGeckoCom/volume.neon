@@ -1,7 +1,7 @@
-settings.json
-
-# python compiled files
+*.yml
+!settingsmeta.yml
+*.lock
+.idea/
+.msm
 *.pyc
-
-# Vim temp files
-.*.sw?
+settings.json
