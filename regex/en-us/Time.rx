@@ -1,0 +1,1 @@
+(for|at|after) (?P<time>.*) second(s|)
