@@ -4,4 +4,4 @@
 .idea/
 .msm
 *.pyc
-settings.json
+settings.json__pycache__/
