@@ -5,3 +5,4 @@
 .msm
 *.pyc
 settings.json__pycache__/
+!.github/*
