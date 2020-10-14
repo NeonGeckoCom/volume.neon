@@ -130,16 +130,31 @@ class VolumeSkill(MycroftSkill):
             LOG.debug(e)
             pass
 
+        self.bus.once("mycroft.ready", self._unmute_on_loaded)
+
+    def _unmute_on_loaded(self, message):
+        from mycroft.util import play_wav
+        play_wav(self.configuration_available["fileVars"]["notify"])
+        self.set_volume(io='input', setting=-1, speak=False)
+
     # Queries current volume and imports as mic_level and vol_level
-    def get_volume(self):
+    def _get_volume(self):
+        """
+        Populates self.mic_level and self.vol_level with current OS values
+        """
         subprocess.call(['bash', '-c', ". " + self.configuration_available["dirVars"]["ngiDir"]
                         + "/functions.sh; getLevel; exit"])
         LOG.debug("Volume Updated")
         self.mic_level = int(open(self.configuration_available["dirVars"]["tempDir"] + "/input_volume").read())
         self.vol_level = int(open(self.configuration_available["dirVars"]["tempDir"] + "/output_volume").read())
 
-    # Sets level with arguments input/output and level (0-100) (-1 for unmute)
-    def set_volume(self, io, setting):
+    def set_volume(self, io: str, setting, speak: bool = True):
+        """
+        Sets level of io to setting
+        :param io: "input" or "output"
+        :param setting: (0-100) (-1 for unmute)
+        :param speak: boolean to speak confirmation of volume change
+        """
         subprocess.Popen(['bash', '-c', ". " + self.configuration_available["dirVars"]["ngiDir"]
                           + "/functions.sh; setLevel " + str(io) + " " + str(setting)])
         if str(setting) == '0':
@@ -155,7 +170,8 @@ class VolumeSkill(MycroftSkill):
                 kind = "Microphone level"
                 volume = self.mic_level
                 # self.speak("Microphone restored to " + str(self.mic_level) + ".", private=True)
-            self.speak_dialog("reset.volume", {"kind": kind, "volume": volume}, private=True)
+            if speak:
+                self.speak_dialog("reset.volume", {"kind": kind, "volume": volume}, private=True)
         else:
             if str(io) == 'output':
                 kind = "Volume"
@@ -163,11 +179,12 @@ class VolumeSkill(MycroftSkill):
             else:
                 kind = "Microphone Level"
                 # self.speak("Microphone level set to " + str(setting) + " percent.", private=True)
-            self.speak_dialog("set.volume", {"kind": kind, "volume": str(setting)}, private=True)
+            if speak:
+                self.speak_dialog("set.volume", {"kind": kind, "volume": str(setting)}, private=True)
 
     @intent_handler(IntentBuilder("SetVolume").optionally("Set").require("Volume").require("Level"))
     def handle_set_volume(self, message):
-        level = self.get_volume_level(message, self.get_volume())
+        level = self.get_volume_level(message, self._get_volume())
         # LOG.info("Set Volume Intent")
 
         if message.context["mobile"]:
@@ -198,7 +215,7 @@ class VolumeSkill(MycroftSkill):
             self.socket_io_emit(event="audio control", kind="volume", message="query",
                                 flac_filename=message.context["flac_filename"])
         else:
-            self.get_volume()
+            self._get_volume()
             if message.data.get("Mic") or self.mic_options[0] in message.data.get("utterance") \
                     or self.mic_options[1] in message.data.get("utterance") or \
                     self.mic_options[2] in message.data.get("utterance"):
@@ -417,7 +434,7 @@ class VolumeSkill(MycroftSkill):
         return level
 
     def update_volume(self, change=0):
-        self.get_volume()
+        self._get_volume()
         old_level = self.vol_level
         new_level = self.bound_level(old_level + change)
         # self.enclosure.eyes_volume(new_level)
@@ -425,7 +442,7 @@ class VolumeSkill(MycroftSkill):
         return new_level, new_level != old_level
 
     def update_mic_volume(self, change=0):
-        self.get_volume()
+        self._get_volume()
         old_level = self.mic_level
         new_level = self.bound_level(old_level + change)
         # self.enclosure.eyes_volume(new_level)
