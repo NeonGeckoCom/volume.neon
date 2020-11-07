@@ -129,8 +129,8 @@ class VolumeSkill(MycroftSkill):
         except Exception as e:
             LOG.debug(e)
             pass
-
-        self.bus.once("mycroft.ready", self._unmute_on_loaded)
+        if not self.server:
+            self.bus.once("mycroft.ready", self._unmute_on_loaded)
 
     def _unmute_on_loaded(self, message):
         from mycroft.util import play_wav
