@@ -1,21 +1,21 @@
-# ![](https://0000.us/klatchat/app/files/neon_images/icons/neon_paw.png)Volume
+# <img src='https://0000.us/klatchat/app/files/neon_images/icons/neon_skill.png' card_color="#FF8600" width="50" style="vertical-align:bottom">Volume
   
-# Summary  
+## Summary  
   
 Control microphone and speaker audio levels.
   
-# Requirements  
+## Requirements  
 [PulseAudio](https://www.freedesktop.org/wiki/Software/PulseAudio/) is required and installed by default with most Linux
 distributions.
   
-# Description  
+## Description  
   
 This skill controls the audio level and mute status for the default input and output device. You may increment volume,
 set to a specified level, or mute/unmute. You may also query the current volume and microphone level.
     
   
   
-# How to Use  
+## Examples  
   
 First, make your request:  
   
@@ -34,12 +34,12 @@ Say `“Hey Neon”` if you are in the wake words mode.
   
 Neon will respond with the new audio level.
 
-# Location  
+## Location  
   
 
      ${skills}/volume.neon
 
-# Files
+## Files
 <details>
 <summary>Click to expand.</summary>
 <br>
@@ -145,11 +145,11 @@ Neon will respond with the new audio level.
 </details>
   
 
-# Class Diagram
+## Class Diagram
 [Click Here](https://0000.us/klatchat/app/files/neon_images/class_diagrams/volume.png)
   
 
-# Available Intents
+## Available Intents
 <details>
 <summary>Show list</summary>
 <br>
@@ -225,7 +225,7 @@ Neon will respond with the new audio level.
 </details>
 
 
-# Examples
+## Details
 
 ### Text
 
@@ -243,11 +243,11 @@ Neon will respond with the new audio level.
 
 ### Video
 
-# Troubleshooting
+## Troubleshooting
 Make sure the correct default audio devices are selected (see `3. Setting Up Hardware` in the instructions).
 
-# Contact Support
+## Contact Support
 Use the [link](https://neongecko.com/ContactUs) or [submit an issue on GitHub](https://help.github.com/en/articles/creating-an-issue)
 
-# Credits
+## Credits
 reginaneon [neongeckocom](https://neongecko.com/) djmcknight358 Mycroft AI
