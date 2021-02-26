@@ -192,8 +192,9 @@ class VolumeSkill(MycroftSkill):
             self.mobile_skill_intent("volume", {"level": level}, message)
             # self.socket_io_emit('volume', f"&level={level}", message.context["flac_filename"])
         elif self.server:
-            self.socket_io_emit(event="audio control", kind="volume", message=level,
-                                flac_filename=message.context["flac_filename"])
+            self.socket_emit_to_server("audio control", ["volume", level, message.context["klat_data"]["request_id"]])
+            # self.socket_io_emit(event="audio control", kind="volume", message=level,
+            #                     flac_filename=message.context["flac_filename"])
         else:
             if message.data.get("Mic") or self.mic_options[0] in message.data.get("utterance") \
                     or self.mic_options[1] in message.data.get("utterance") or \
@@ -214,8 +215,9 @@ class VolumeSkill(MycroftSkill):
             self.mobile_skill_intent("volume", {"query": ""}, message)
             # self.socket_io_emit('volume', 'query', message.context["flac_filename"])
         elif self.server:
-            self.socket_io_emit(event="audio control", kind="volume", message="query",
-                                flac_filename=message.context["flac_filename"])
+            self.socket_emit_to_server("audio control", ["volume", "query", message.context["klat_data"]["request_id"]])
+            # self.socket_io_emit(event="audio control", kind="volume", message="query",
+            #                     flac_filename=message.context["flac_filename"])
         else:
             self._get_volume()
             if message.data.get("Mic") or self.mic_options[0] in message.data.get("utterance") \
@@ -253,8 +255,9 @@ class VolumeSkill(MycroftSkill):
             self.mobile_skill_intent("volume", {"level": "increase"}, message)
             # self.socket_io_emit('volume', '&level=increase', message.context["flac_filename"])
         elif self.server:
-            self.socket_io_emit(event="audio control", kind="volume", message="increase",
-                                flac_filename=message.context["flac_filename"])
+            self.socket_emit_to_server("audio control", ["volume", "increase", message.context["klat_data"]["request_id"]])
+            # self.socket_io_emit(event="audio control", kind="volume", message="increase",
+            #                     flac_filename=message.context["flac_filename"])
         else:
             if message.data.get("Mic") or self.mic_options[0] in message.data.get("utterance") \
                     or self.mic_options[1] in message.data.get("utterance"):
@@ -273,8 +276,9 @@ class VolumeSkill(MycroftSkill):
             self.mobile_skill_intent("volume", {"level": "decrease"}, message)
             # self.socket_io_emit('volume', '&level=decrease', message.context["flac_filename"])
         elif self.server:
-            self.socket_io_emit(event="audio control", kind="volume", message="decrease",
-                                flac_filename=message.context["flac_filename"])
+            self.socket_emit_to_server("audio control", ["volume", "decrease", message.context["klat_data"]["request_id"]])
+            # self.socket_io_emit(event="audio control", kind="volume", message="decrease",
+            #                     flac_filename=message.context["flac_filename"])
         else:
             if message.data.get("Mic") or self.mic_options[0] in message.data.get("utterance") \
                     or self.mic_options[1] in message.data.get("utterance"):
@@ -291,8 +295,10 @@ class VolumeSkill(MycroftSkill):
                 self.mobile_skill_intent("volume", {"state": "mute"}, message)
                 # self.socket_io_emit('microphone', '&state=mute', message.context["flac_filename"])
             elif self.server:
-                self.socket_io_emit(event="audio control", kind="microphone", message=False,
-                                    flac_filename=message.context["flac_filename"])
+                self.socket_emit_to_server("audio control",
+                                           ["microphone", False, message.context["klat_data"]["request_id"]])
+                # self.socket_io_emit(event="audio control", kind="microphone", message=False,
+                #                     flac_filename=message.context["flac_filename"])
             else:
                 self.set_volume(io='input', setting=0)
             self.speak_dialog('mute.volume', {"kind": "Microphone"}, private=True)
@@ -307,8 +313,10 @@ class VolumeSkill(MycroftSkill):
             if self.request_from_mobile(message):
                 pass
             elif self.server:
-                self.socket_io_emit(event="audio control", kind="speech", message=False,
-                                    flac_filename=message.context["flac_filename"])
+                self.socket_emit_to_server("audio control",
+                                           ["speech", False, message.context["klat_data"]["request_id"]])
+                # self.socket_io_emit(event="audio control", kind="speech", message=False,
+                #                     flac_filename=message.context["flac_filename"])
             else:
                 self.set_volume(io='output', setting=0)
 
@@ -353,8 +361,10 @@ class VolumeSkill(MycroftSkill):
                 self.mobile_skill_intent("microphone", {"state": "unmute"}, message)
                 # self.socket_io_emit('microphone', '&state=unmute', message.context["flac_filename"])
             elif self.server:
-                self.socket_io_emit(event="audio control", kind="microphone", message=True,
-                                    flac_filename=message.context["flac_filename"])
+                self.socket_emit_to_server("audio control",
+                                           ["microphone", True, message.context["klat_data"]["request_id"]])
+                # self.socket_io_emit(event="audio control", kind="microphone", message=True,
+                #                     flac_filename=message.context["flac_filename"])
                 self.speak("Microphone listening.", private=True)
             else:
                 self.set_volume(io='input', setting=-1)
@@ -365,8 +375,10 @@ class VolumeSkill(MycroftSkill):
                 # self.socket_io_emit('volume', '&level=unmute', message.context["flac_filename"])
             elif self.server:
                 self.speak("Audio restored.", private=True)
-                self.socket_io_emit(event="audio control", kind="speech", message=True,
-                                    flac_filename=message.context["flac_filename"])
+                self.socket_emit_to_server("audio control",
+                                           ["speech", True, message.context["klat_data"]["request_id"]])
+                # self.socket_io_emit(event="audio control", kind="speech", message=True,
+                #                     flac_filename=message.context["flac_filename"])
             else:
                 self.set_volume(io='output', setting=-1)
 
