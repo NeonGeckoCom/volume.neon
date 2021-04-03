@@ -35,25 +35,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# from alsaaudio import Mixer
 
 import subprocess
 
 from adapt.intent import IntentBuilder
 
-from mycroft.messagebus.message import Message
+from mycroft_bus_client import Message
 from mycroft.audio import wait_while_speaking
-from mycroft.skills.core import MycroftSkill, intent_handler
-from mycroft.util import LOG
-# from mycroft.util.signal import (
-#     self.check_for_signal)
-# try:
-#     from mycroft.device import device
-# except ImportError:
-#     device = 'desktop'
+from mycroft.skills.core import intent_handler
+from neon_utils.skills.neon_skill import NeonSkill, LOG
 
 
-class VolumeSkill(MycroftSkill):
+class VolumeSkill(NeonSkill):
 
     MIN_LEVEL = 0
     MAX_LEVEL = 100
@@ -255,7 +248,8 @@ class VolumeSkill(MycroftSkill):
             self.mobile_skill_intent("volume", {"level": "increase"}, message)
             # self.socket_io_emit('volume', '&level=increase', message.context["flac_filename"])
         elif self.server:
-            self.socket_emit_to_server("audio control", ["volume", "increase", message.context["klat_data"]["request_id"]])
+            self.socket_emit_to_server("audio control", ["volume", "increase",
+                                                         message.context["klat_data"]["request_id"]])
             # self.socket_io_emit(event="audio control", kind="volume", message="increase",
             #                     flac_filename=message.context["flac_filename"])
         else:
@@ -276,7 +270,8 @@ class VolumeSkill(MycroftSkill):
             self.mobile_skill_intent("volume", {"level": "decrease"}, message)
             # self.socket_io_emit('volume', '&level=decrease', message.context["flac_filename"])
         elif self.server:
-            self.socket_emit_to_server("audio control", ["volume", "decrease", message.context["klat_data"]["request_id"]])
+            self.socket_emit_to_server("audio control", ["volume", "decrease",
+                                                         message.context["klat_data"]["request_id"]])
             # self.socket_io_emit(event="audio control", kind="volume", message="decrease",
             #                     flac_filename=message.context["flac_filename"])
         else:
