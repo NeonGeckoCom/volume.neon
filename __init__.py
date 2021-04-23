@@ -84,7 +84,7 @@ class VolumeSkill(NeonSkill):
 
         self.min_volume = 0
         self.max_volume = 100
-        self.mic_options = ["mic", "microphone", "input"]
+        # self.mic_options = ["mic", "microphone", "input"]
 
         # Populate current volume levels
         if not self.server:
@@ -110,20 +110,6 @@ class VolumeSkill(NeonSkill):
         intent = IntentBuilder("UnmuteVolume").require("Volume").optionally("Mic").require("Unmute").build()
         self.register_intent(intent, self.handle_unmute_volume)
 
-        try:
-            # Register handlers for messagebus events
-            self.add_event('mycroft.volume.increase',
-                           self.handle_increase_volume)
-            self.add_event('mycroft.volume.decrease',
-                           self.handle_decrease_volume)
-            self.add_event('mycroft.volume.mute',
-                           self.handle_mute_volume)
-            self.add_event('mycroft.volume.unmute',
-                           self.handle_unmute_volume)
-            self.log.info("********** Handlers registered")
-        except Exception as e:
-            LOG.debug(e)
-            pass
         if not self.server:
             self.bus.once("mycroft.ready", self._unmute_on_loaded)
 
@@ -137,11 +123,17 @@ class VolumeSkill(NeonSkill):
         """
         Populates self.mic_level and self.vol_level with current OS values
         """
-        subprocess.call(['bash', '-c', ". " + self.configuration_available["dirVars"]["ngiDir"]
-                        + "/functions.sh; getLevel; exit"])
-        LOG.debug("Volume Updated")
-        self.mic_level = int(open(self.configuration_available["dirVars"]["tempDir"] + "/input_volume").read())
-        self.vol_level = int(open(self.configuration_available["dirVars"]["tempDir"] + "/output_volume").read())
+        enclosure = self.local_config.get("devVars", {}).get("devType") or "generic"
+        if enclosure in ("generic", "neonK", "neonX", "neonAlpha", "neonU"):
+            subprocess.call(['bash', '-c', ". " + self.configuration_available["dirVars"]["ngiDir"]
+                            + "/functions.sh; getLevel; exit"])
+            LOG.debug("Volume Updated")
+            self.mic_level = int(open(self.configuration_available["dirVars"]["tempDir"] + "/input_volume").read())
+            self.vol_level = int(open(self.configuration_available["dirVars"]["tempDir"] + "/output_volume").read())
+        else:
+            self.mic_level = 100
+            vol_response = self.bus.wait_for_response(Message("mycroft.volume.get"))
+            self.vol_level = int(vol_response.data.get("percent", 0))
 
     def set_volume(self, io: str, setting, speak: bool = True):
         """
@@ -150,8 +142,20 @@ class VolumeSkill(NeonSkill):
         :param setting: (0-100) (-1 for unmute)
         :param speak: boolean to speak confirmation of volume change
         """
-        subprocess.Popen(['bash', '-c', ". " + self.configuration_available["dirVars"]["ngiDir"]
-                          + "/functions.sh; setLevel " + str(io) + " " + str(setting)])
+        enclosure = self.local_config.get("devVars", {}).get("devType") or "generic"
+        if enclosure in ("generic", "neonK", "neonX", "neonAlpha", "neonU"):
+            subprocess.Popen(['bash', '-c', ". " + self.configuration_available["dirVars"]["ngiDir"]
+                              + "/functions.sh; setLevel " + str(io) + " " + str(setting)])
+        else:
+            if str(io) == "input":
+                LOG.warning(f"Input controls not implemented!")
+            else:
+                if str(setting) == '0':
+                    self.bus.emit(Message("mycroft.volume.mute", {"mute": True}, {"origin": "volume.neon"}))
+                elif str(setting) == '-1':
+                    self.bus.emit(Message("mycroft.volume.mute", {"mute": False}, {"origin": "volume.neon"}))
+                else:
+                    self.bus.emit(Message("mycroft.volume.set", {"percent": setting}, {"origin": "volume.neon"}))
         if str(setting) == '0':
             if str(io) == 'input':
                 pass
@@ -179,7 +183,7 @@ class VolumeSkill(NeonSkill):
 
     @intent_handler(IntentBuilder("SetVolume").optionally("Set").require("Volume").require("Level"))
     def handle_set_volume(self, message):
-        level = self.get_volume_level(message, self._get_volume())
+        level = self.extract_spoken_volume_level(message, self._get_volume())
         # LOG.info("Set Volume Intent")
 
         if request_from_mobile(message):
@@ -191,9 +195,7 @@ class VolumeSkill(NeonSkill):
             # self.socket_io_emit(event="audio control", kind="volume", message=level,
             #                     flac_filename=message.context["flac_filename"])
         else:
-            if message.data.get("Mic") or self.mic_options[0] in message.data.get("utterance") \
-                    or self.mic_options[1] in message.data.get("utterance") or \
-                    self.mic_options[2] in message.data.get("utterance"):
+            if message.data.get("Mic"):
                 self.set_volume(io='input', setting=level)
                 # LOG.info("in mic")
             else:
@@ -215,9 +217,7 @@ class VolumeSkill(NeonSkill):
             #                     flac_filename=message.context["flac_filename"])
         else:
             self._get_volume()
-            if message.data.get("Mic") or self.mic_options[0] in message.data.get("utterance") \
-                    or self.mic_options[1] in message.data.get("utterance") or \
-                    self.mic_options[2] in message.data.get("utterance"):
+            if message.data.get("Mic"):
                 level = self.mic_level
                 self.speak_dialog('volume.is', data={'kind': 'microphone', 'volume': level}, private=True)
             else:
@@ -226,22 +226,6 @@ class VolumeSkill(NeonSkill):
                     self.speak_dialog('volume.is', data={'kind': 'volume', 'volume': level}, private=True)
                 else:
                     self.speak("The volume is at {} percent.".format(level), private=True)
-
-    # def communicate_volume_change(self, dialog, code, changed):
-    #     # play_sound = message.data.get('play_sound', False)
-    #     # if play_sound:
-    #     #     if changed:
-    #     # #         play_wav(self.volume_sound)
-    #     #
-    #     # else:
-    #     if changed:
-    #         self.speak_dialog(dialog, data={'volume': code}, private=True)
-    #     if not changed:
-    #         if not self.check_for_signal("use_default_response", -1):
-    #             dialog = 'already.max.volume'
-    #             self.speak_dialog(dialog, data={'volume': code}, private=True)
-    #         else:
-    #             self.speak("I can't get any louder", private=True)
 
     def handle_increase_volume(self, message):
         if request_from_mobile(message):
@@ -255,8 +239,7 @@ class VolumeSkill(NeonSkill):
             # self.socket_io_emit(event="audio control", kind="volume", message="increase",
             #                     flac_filename=message.context["flac_filename"])
         else:
-            if message.data.get("Mic") or self.mic_options[0] in message.data.get("utterance") \
-                    or self.mic_options[1] in message.data.get("utterance"):
+            if message.data.get("Mic"):
                 self.update_mic_volume(10)
                 # LOG.info("in mic")
             else:
@@ -277,8 +260,7 @@ class VolumeSkill(NeonSkill):
             # self.socket_io_emit(event="audio control", kind="volume", message="decrease",
             #                     flac_filename=message.context["flac_filename"])
         else:
-            if message.data.get("Mic") or self.mic_options[0] in message.data.get("utterance") \
-                    or self.mic_options[1] in message.data.get("utterance"):
+            if message.data.get("Mic"):
                 self.update_mic_volume(-10)
                 # LOG.info("in mic")
             # Output
@@ -286,8 +268,7 @@ class VolumeSkill(NeonSkill):
                 self.update_volume(-10)
 
     def handle_mute_volume(self, message):
-        if message.data.get("Mic") or self.mic_options[0] in message.data.get("utterance") \
-                or self.mic_options[1] in message.data.get("utterance"):
+        if message.data.get("Mic"):
             if request_from_mobile(message):
                 self.mobile_skill_intent("volume", {"state": "mute"}, message)
                 # self.socket_io_emit('microphone', '&state=mute', message.context["flac_filename"])
@@ -352,8 +333,7 @@ class VolumeSkill(NeonSkill):
     # @intent_handler(IntentBuilder("UnmuteVolume").require(
     #    "Volume").require("Unmute"))
     def handle_unmute_volume(self, message):
-        if message.data.get("Mic") or self.mic_options[0] in message.data.get("utterance") \
-                or self.mic_options[1] in message.data.get("utterance"):
+        if message.data.get("Mic"):
             if request_from_mobile(message):
                 self.mobile_skill_intent("microphone", {"state": "unmute"}, message)
                 # self.socket_io_emit('microphone', '&state=unmute', message.context["flac_filename"])
@@ -408,23 +388,23 @@ class VolumeSkill(NeonSkill):
         #         #     else:
         #         #         self.speak("Volume restored to {}".format(self.default_level))
 
-    def volume_to_level(self, volume):
-        """
-        Convert a 'volume' to a 'level'
-
-        Args:
-            volume (int): min_volume..max_volume
-        Returns:
-            int: the equivalent level
-        """
-        range_volume = self.MAX_LEVEL - self.MIN_LEVEL
-        prop = float(volume - self.min_volume) / self.max_volume
-        level = int(round(self.MIN_LEVEL + range_volume * prop))
-        if level > self.MAX_LEVEL:
-            level = self.MAX_LEVEL
-        elif level < self.MIN_LEVEL:
-            level = self.MIN_LEVEL
-        return level
+    # def volume_to_level(self, volume):
+    #     """
+    #     Convert a 'volume' to a 'level'
+    #
+    #     Args:
+    #         volume (int): min_volume..max_volume
+    #     Returns:
+    #         int: the equivalent level
+    #     """
+    #     range_volume = self.MAX_LEVEL - self.MIN_LEVEL
+    #     prop = float(volume - self.min_volume) / self.max_volume
+    #     level = int(round(self.MIN_LEVEL + range_volume * prop))
+    #     if level > self.MAX_LEVEL:
+    #         level = self.MAX_LEVEL
+    #     elif level < self.MIN_LEVEL:
+    #         level = self.MIN_LEVEL
+    #     return level
 
     # def __level_to_volume(self, level):
     #     """
@@ -465,7 +445,7 @@ class VolumeSkill(NeonSkill):
         self.set_volume(io='input', setting=new_level)
         return new_level, new_level != old_level
 
-    def get_volume_level(self, message, default=None):
+    def extract_spoken_volume_level(self, message, default=None):
         level_str = message.data.get('Level', default)
         level = self.default_level
         try:
