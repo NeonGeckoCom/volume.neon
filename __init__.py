@@ -61,14 +61,12 @@ class VolumeSkill(NeonSkill):
 
     def __init__(self):
         super(VolumeSkill, self).__init__("VolumeSkill")
-        emit_update = False
         try:
             self.default_level = self.configuration_available["devVars"]["defaultVolume"]
         except KeyError:
             self.default_level = 60
             # self.create_signal("NGI_YAML_config_update")
             self.local_config.update_yaml_file("devVars", "defaultVolume", self.default_level)
-            emit_update = True
 
         try:
             self.default_level = self.configuration_available["devVars"]["defaultMicVolume"]
@@ -76,11 +74,6 @@ class VolumeSkill(NeonSkill):
             self.default_level = 100
             # self.create_signal("NGI_YAML_config_update")
             self.local_config.update_yaml_file("devVars", "defaultMicVolume", self.default_level)
-            emit_update = True
-
-        if emit_update:
-            self.bus.emit(Message('check.yml.updates',
-                                  {"modified": ["ngi_local_conf"]}, {"origin": "volume.neon"}))
 
         self.min_volume = 0
         self.max_volume = 100
@@ -133,7 +126,14 @@ class VolumeSkill(NeonSkill):
         else:
             self.mic_level = 100
             vol_response = self.bus.wait_for_response(Message("mycroft.volume.get"))
-            self.vol_level = int(vol_response.data.get("percent", 0))
+            vol_percent = vol_response.data.get("percent")
+            if isinstance(vol_percent, int):
+                self.vol_level = vol_percent
+            elif isinstance(vol_percent, float):
+                self.vol_level = round(100 * vol_percent)
+            else:
+                LOG.error(vol_response)
+                self.vol_level = 0
 
     def set_volume(self, io: str, setting, speak: bool = True):
         """
@@ -155,7 +155,7 @@ class VolumeSkill(NeonSkill):
                 elif str(setting) == '-1':
                     self.bus.emit(Message("mycroft.volume.mute", {"mute": False}, {"origin": "volume.neon"}))
                 else:
-                    self.bus.emit(Message("mycroft.volume.set", {"percent": setting}, {"origin": "volume.neon"}))
+                    self.bus.emit(Message("mycroft.volume.set", {"percent": setting/100}, {"origin": "volume.neon"}))
         if str(setting) == '0':
             if str(io) == 'input':
                 pass
