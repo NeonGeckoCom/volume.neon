@@ -46,6 +46,7 @@ from neon_utils.message_utils import request_from_mobile
 from mycroft.audio import wait_while_speaking
 from mycroft.skills.core import intent_handler
 from neon_utils.skills.neon_skill import NeonSkill, LOG
+from ovos_utils import resolve_resource_file
 
 
 class VolumeSkill(NeonSkill):
@@ -62,14 +63,14 @@ class VolumeSkill(NeonSkill):
     def __init__(self):
         super(VolumeSkill, self).__init__("VolumeSkill")
         try:
-            self.default_level = self.configuration_available["devVars"]["defaultVolume"]
+            self.default_level = self.local_config["devVars"]["defaultVolume"]
         except KeyError:
             self.default_level = 60
             # self.create_signal("NGI_YAML_config_update")
             self.local_config.update_yaml_file("devVars", "defaultVolume", self.default_level)
 
         try:
-            self.default_level = self.configuration_available["devVars"]["defaultMicVolume"]
+            self.default_level = self.local_config["devVars"]["defaultMicVolume"]
         except KeyError:
             self.default_level = 100
             # self.create_signal("NGI_YAML_config_update")
@@ -79,12 +80,13 @@ class VolumeSkill(NeonSkill):
         self.max_volume = 100
         # self.mic_options = ["mic", "microphone", "input"]
 
+        # TODO: Depreciate mic/vol levels and use API
         # Populate current volume levels
         if not self.server:
-            subprocess.call(['bash', '-c', ". " + self.configuration_available["dirVars"]["ngiDir"]
+            subprocess.call(['bash', '-c', ". " + self.local_config["dirVars"]["ngiDir"]
                              + "/functions.sh; getLevel"])
-            self.mic_level = int(open(self.configuration_available["dirVars"]["tempDir"] + "/input_volume").read())
-            self.vol_level = int(open(self.configuration_available["dirVars"]["tempDir"] + "/output_volume").read())
+            self.mic_level = int(open(self.local_config["dirVars"]["tempDir"] + "/input_volume").read())
+            self.vol_level = int(open(self.local_config["dirVars"]["tempDir"] + "/output_volume").read())
         else:
             self.mic_level = 0
             self.vol_level = 0
@@ -108,7 +110,7 @@ class VolumeSkill(NeonSkill):
 
     def _unmute_on_loaded(self, message):
         from mycroft.util import play_wav
-        play_wav(self.configuration_available["fileVars"]["notify"])
+        play_wav(resolve_resource_file(self.local_config["fileVars"]["notify"]))
         self.set_volume(io='input', setting=-1, speak=False)
 
     # Queries current volume and imports as mic_level and vol_level
@@ -118,11 +120,11 @@ class VolumeSkill(NeonSkill):
         """
         enclosure = self.local_config.get("devVars", {}).get("devType") or "generic"
         if enclosure in ("generic", "neonK", "neonX", "neonAlpha", "neonU"):
-            subprocess.call(['bash', '-c', ". " + self.configuration_available["dirVars"]["ngiDir"]
+            subprocess.call(['bash', '-c', ". " + self.local_config["dirVars"]["ngiDir"]
                             + "/functions.sh; getLevel; exit"])
             LOG.debug("Volume Updated")
-            self.mic_level = int(open(self.configuration_available["dirVars"]["tempDir"] + "/input_volume").read())
-            self.vol_level = int(open(self.configuration_available["dirVars"]["tempDir"] + "/output_volume").read())
+            self.mic_level = int(open(self.local_config["dirVars"]["tempDir"] + "/input_volume").read())
+            self.vol_level = int(open(self.local_config["dirVars"]["tempDir"] + "/output_volume").read())
         else:
             self.mic_level = 100
             vol_response = self.bus.wait_for_response(Message("mycroft.volume.get"))
@@ -144,7 +146,7 @@ class VolumeSkill(NeonSkill):
         """
         enclosure = self.local_config.get("devVars", {}).get("devType") or "generic"
         if enclosure in ("generic", "neonK", "neonX", "neonAlpha", "neonU"):
-            subprocess.Popen(['bash', '-c', ". " + self.configuration_available["dirVars"]["ngiDir"]
+            subprocess.Popen(['bash', '-c', ". " + self.local_config["dirVars"]["ngiDir"]
                               + "/functions.sh; setLevel " + str(io) + " " + str(setting)])
         else:
             if str(io) == "input":
