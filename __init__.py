@@ -83,10 +83,15 @@ class VolumeSkill(NeonSkill):
         # TODO: Depreciate mic/vol levels and use API
         # Populate current volume levels
         if not self.server:
-            subprocess.call(['bash', '-c', ". " + self.local_config["dirVars"]["ngiDir"]
-                             + "/functions.sh; getLevel"])
-            self.mic_level = int(open(self.local_config["dirVars"]["tempDir"] + "/input_volume").read())
-            self.vol_level = int(open(self.local_config["dirVars"]["tempDir"] + "/output_volume").read())
+            try:
+                subprocess.call(['bash', '-c', ". " + self.local_config["dirVars"]["ngiDir"]
+                                 + "/functions.sh; getLevel"])
+                self.mic_level = int(open(self.local_config["dirVars"]["tempDir"] + "/input_volume").read())
+                self.vol_level = int(open(self.local_config["dirVars"]["tempDir"] + "/output_volume").read())
+            except Exception as e:
+                LOG.error(e)
+                self.mic_level = 0
+                self.vol_level = 0
         else:
             self.mic_level = 0
             self.vol_level = 0

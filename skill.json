@@ -15,7 +15,9 @@
     "warning": "",
     "systemDeps": false,
     "requirements": {
-        "python": [],
+        "python": [
+            "git+https://github.com/neongeckocom/neon-skill-utils"
+        ],
         "system": {},
         "skill": []
     },
