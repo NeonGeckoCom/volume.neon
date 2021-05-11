@@ -41,6 +41,5 @@
     ],
     "skillname": "Volume",
     "authorname": "Neon",
-    "foldername": "volume.neon",
-    "download_url": "https://api.github.com/repos/NeonGeckoCom/volume.neon/zipball/master"
+    "foldername": "volume.neon"
 }
