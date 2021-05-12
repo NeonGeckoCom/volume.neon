@@ -82,7 +82,7 @@ class VolumeSkill(NeonSkill):
 
         # TODO: Depreciate mic/vol levels and use API
         # Populate current volume levels
-        if not self.server:
+        if not self.server and self.local_config["dirVars"].get("ngiDir"):
             try:
                 subprocess.call(['bash', '-c', ". " + self.local_config["dirVars"]["ngiDir"]
                                  + "/functions.sh; getLevel"])
@@ -124,7 +124,8 @@ class VolumeSkill(NeonSkill):
         Populates self.mic_level and self.vol_level with current OS values
         """
         enclosure = self.local_config.get("devVars", {}).get("devType") or "generic"
-        if enclosure in ("generic", "neonK", "neonX", "neonAlpha", "neonU"):
+        if enclosure in ("generic", "neonK", "neonX", "neonAlpha", "neonU") and\
+                self.local_config["dirVars"].get("ngiDir"):
             subprocess.call(['bash', '-c', ". " + self.local_config["dirVars"]["ngiDir"]
                             + "/functions.sh; getLevel; exit"])
             LOG.debug("Volume Updated")
@@ -150,7 +151,8 @@ class VolumeSkill(NeonSkill):
         :param speak: boolean to speak confirmation of volume change
         """
         enclosure = self.local_config.get("devVars", {}).get("devType") or "generic"
-        if enclosure in ("generic", "neonK", "neonX", "neonAlpha", "neonU"):
+        if enclosure in ("generic", "neonK", "neonX", "neonAlpha", "neonU") and\
+                self.local_config["dirVars"].get("ngiDir"):
             subprocess.Popen(['bash', '-c', ". " + self.local_config["dirVars"]["ngiDir"]
                               + "/functions.sh; setLevel " + str(io) + " " + str(setting)])
         else:
