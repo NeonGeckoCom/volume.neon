@@ -38,15 +38,15 @@
 
 import subprocess
 
+from os.path import isfile, join
 from adapt.intent import IntentBuilder
-
 from mycroft_bus_client import Message
 from neon_utils.message_utils import request_from_mobile
+from neon_utils.skills.neon_skill import NeonSkill, LOG
+from ovos_utils import resolve_resource_file
 
 from mycroft.audio import wait_while_speaking
 from mycroft.skills.core import intent_handler
-from neon_utils.skills.neon_skill import NeonSkill, LOG
-from ovos_utils import resolve_resource_file
 
 
 class VolumeSkill(NeonSkill):
@@ -82,7 +82,7 @@ class VolumeSkill(NeonSkill):
 
         # TODO: Depreciate mic/vol levels and use API
         # Populate current volume levels
-        if not self.server and self.local_config["dirVars"].get("ngiDir"):
+        if not self.server and isfile(join(self.local_config["dirVars"].get("ngiDir", ""), "functions.sh")):
             try:
                 subprocess.call(['bash', '-c', ". " + self.local_config["dirVars"]["ngiDir"]
                                  + "/functions.sh; getLevel"])
@@ -125,7 +125,7 @@ class VolumeSkill(NeonSkill):
         """
         enclosure = self.local_config.get("devVars", {}).get("devType") or "generic"
         if enclosure in ("generic", "neonK", "neonX", "neonAlpha", "neonU") and\
-                self.local_config["dirVars"].get("ngiDir"):
+                isfile(join(self.local_config["dirVars"].get("ngiDir", ""), "functions.sh")):
             subprocess.call(['bash', '-c', ". " + self.local_config["dirVars"]["ngiDir"]
                             + "/functions.sh; getLevel; exit"])
             LOG.debug("Volume Updated")
@@ -152,7 +152,7 @@ class VolumeSkill(NeonSkill):
         """
         enclosure = self.local_config.get("devVars", {}).get("devType") or "generic"
         if enclosure in ("generic", "neonK", "neonX", "neonAlpha", "neonU") and\
-                self.local_config["dirVars"].get("ngiDir"):
+                isfile(join(self.local_config["dirVars"].get("ngiDir", ""), "functions.sh")):
             subprocess.Popen(['bash', '-c', ". " + self.local_config["dirVars"]["ngiDir"]
                               + "/functions.sh; setLevel " + str(io) + " " + str(setting)])
         else:
