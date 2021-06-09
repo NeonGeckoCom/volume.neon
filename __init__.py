@@ -38,15 +38,15 @@
 
 import subprocess
 
+from os.path import isfile, join
 from adapt.intent import IntentBuilder
-
 from mycroft_bus_client import Message
 from neon_utils.message_utils import request_from_mobile
+from neon_utils.skills.neon_skill import NeonSkill, LOG
+from ovos_utils import resolve_resource_file
 
 from mycroft.audio import wait_while_speaking
 from mycroft.skills.core import intent_handler
-from neon_utils.skills.neon_skill import NeonSkill, LOG
-from ovos_utils import resolve_resource_file
 
 
 class VolumeSkill(NeonSkill):
@@ -82,11 +82,16 @@ class VolumeSkill(NeonSkill):
 
         # TODO: Depreciate mic/vol levels and use API
         # Populate current volume levels
-        if not self.server:
-            subprocess.call(['bash', '-c', ". " + self.local_config["dirVars"]["ngiDir"]
-                             + "/functions.sh; getLevel"])
-            self.mic_level = int(open(self.local_config["dirVars"]["tempDir"] + "/input_volume").read())
-            self.vol_level = int(open(self.local_config["dirVars"]["tempDir"] + "/output_volume").read())
+        if not self.server and isfile(join(self.local_config["dirVars"].get("ngiDir", ""), "functions.sh")):
+            try:
+                subprocess.call(['bash', '-c', ". " + self.local_config["dirVars"]["ngiDir"]
+                                 + "/functions.sh; getLevel"])
+                self.mic_level = int(open(self.local_config["dirVars"]["tempDir"] + "/input_volume").read())
+                self.vol_level = int(open(self.local_config["dirVars"]["tempDir"] + "/output_volume").read())
+            except Exception as e:
+                LOG.error(e)
+                self.mic_level = 0
+                self.vol_level = 0
         else:
             self.mic_level = 0
             self.vol_level = 0
@@ -119,7 +124,8 @@ class VolumeSkill(NeonSkill):
         Populates self.mic_level and self.vol_level with current OS values
         """
         enclosure = self.local_config.get("devVars", {}).get("devType") or "generic"
-        if enclosure in ("generic", "neonK", "neonX", "neonAlpha", "neonU"):
+        if enclosure in ("generic", "neonK", "neonX", "neonAlpha", "neonU") and\
+                isfile(join(self.local_config["dirVars"].get("ngiDir", ""), "functions.sh")):
             subprocess.call(['bash', '-c', ". " + self.local_config["dirVars"]["ngiDir"]
                             + "/functions.sh; getLevel; exit"])
             LOG.debug("Volume Updated")
@@ -145,7 +151,8 @@ class VolumeSkill(NeonSkill):
         :param speak: boolean to speak confirmation of volume change
         """
         enclosure = self.local_config.get("devVars", {}).get("devType") or "generic"
-        if enclosure in ("generic", "neonK", "neonX", "neonAlpha", "neonU"):
+        if enclosure in ("generic", "neonK", "neonX", "neonAlpha", "neonU") and\
+                isfile(join(self.local_config["dirVars"].get("ngiDir", ""), "functions.sh")):
             subprocess.Popen(['bash', '-c', ". " + self.local_config["dirVars"]["ngiDir"]
                               + "/functions.sh; setLevel " + str(io) + " " + str(setting)])
         else:
