@@ -114,8 +114,11 @@ class VolumeSkill(NeonSkill):
             self.bus.once("mycroft.ready", self._unmute_on_loaded)
 
     def _unmute_on_loaded(self, message):
+        # TODO: Notify should probably go in a different skill DM
         from mycroft.util import play_wav
-        play_wav(resolve_resource_file(self.local_config["fileVars"]["notify"]))
+        notify_file = resolve_resource_file(self.local_config["fileVars"]["notify"])
+        if notify_file:
+            play_wav(notify_file)
         self.set_volume(io='input', setting=-1, speak=False)
 
     # Queries current volume and imports as mic_level and vol_level
@@ -134,6 +137,8 @@ class VolumeSkill(NeonSkill):
         else:
             self.mic_level = 100
             vol_response = self.bus.wait_for_response(Message("mycroft.volume.get"))
+            if not vol_response:
+                raise Exception("No response from enclosure module!")
             vol_percent = vol_response.data.get("percent")
             if isinstance(vol_percent, int):
                 self.vol_level = vol_percent
